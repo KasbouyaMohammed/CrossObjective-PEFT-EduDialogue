@@ -1,0 +1,13 @@
+torch>=2.3
+transformers==4.44.2
+datasets==2.16.0
+peft==0.11.1
+accelerate==0.33.0
+evaluate==0.4.1
+rouge-score
+sacrebleu
+bert-score
+sentencepiece
+scikit-learn
+numpy
+matplotlib
