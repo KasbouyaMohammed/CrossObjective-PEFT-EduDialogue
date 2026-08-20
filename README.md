@@ -6,108 +6,86 @@ Reproducibility package for the manuscript:
 
 Authors: Mohammed Kasbouya, Mohamed Akram Lamhour, Nawal Sael.
 
-## What this repository contains
+## Scope
 
-This repository reproduces the matched-budget study of joint tutor-response generation and auxiliary educational-dialogue classification on MathDial. It includes the exact audited experiment code, the Phase-2 pre-specified protocol, source-of-truth result files used by the manuscript, integrity checks, and scripts that regenerate the reported summary tables and figures.
+This repository accompanies a matched-budget study of joint tutor-response generation and auxiliary educational-dialogue classification on MathDial. The study compares generation-only and classification-only adapters with shared LoRA, factorized adapters, task routing, context-dependent routing, and PCGrad under a fixed total LoRA rank budget.
 
-The paper compares nine systems under the same total LoRA rank budget: generation-only, classification-only, shared joint LoRA, dual-fixed factorization, task-agnostic learned routing, hard task routing, static task-conditioned routing, task+context routing, and shared LoRA with PCGrad.
+The public repository is designed to make the manuscript-facing numbers and implementation auditable without redistributing MathDial or very large per-example artifacts.
 
-## Main reproducibility claim
-
-The repository is intended to make the reported numbers independently auditable. No training is needed to regenerate the manuscript's summary tables and figures: decompress the saved per-seed JSON files and run the analysis scripts.
-
-## Repository layout
+## Repository contents
 
 ```text
-code/                  exact audited training/evaluation code
-analysis/              table, statistics, and figure regeneration
-results/               audited aggregate + per-seed JSON outputs
-protocols/             Phase-2 pre-specified protocol
-figures/               regenerated publication figures
-requirements.txt       Python dependencies
-REPRODUCIBILITY.md      experimental freeze and integrity notes
+analysis/                         scripts that regenerate summary tables and figures
+protocols/                        Phase-2 pre-specified task-dependence protocol
+results/
+  aggregate_dldg_edu_corr_p1.json public three-seed correctness aggregate
+  aggregate_dldg_edu_move_p2.json public three-seed move aggregate
+  SHA256SUMS_AUDITED_FULL.txt      checksums for archived full per-seed audit JSONs
+source/dldg_source_code.zip       exact audited training/evaluation + analysis source package
+REPRODUCIBILITY.md                experimental freeze and integrity notes
+requirements.txt                  environment dependencies
 ```
 
-## 1. Environment
-
-Python 3.10+ is recommended.
+## Reproduce the manuscript-facing tables
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+python analysis/summarize_results.py
 ```
 
-For a Colab reproduction, use a GPU runtime and set the project root to the cloned repository:
+The public aggregate JSONs retain all three seed-level scalar metrics used to compute the paper's descriptive mean +/- sample SD values.
+
+## Reproduce the four figures
 
 ```bash
-export PROJECT_ROOT="$PWD"
+python analysis/make_figures_from_aggregate.py
 ```
 
-The experiment code downloads MathDial from Hugging Face (`eth-nlped/mathdial`) and falls back to the public raw CSV files if needed. The dataset itself is not redistributed here.
+This regenerates the two PPL-vs-Macro-F1 plots, the cross-task generation-interference plot, and the method-effect-vs-shared plot from the public aggregate JSONs. Error bars are descriptive sample SD across the three seeds; they are not bootstrap confidence intervals.
 
-## 2. Verify the saved results without training
+## Exact experiment source
 
-```bash
-gzip -dk results/results_seed*_dldg_edu_*.json.gz
-python analysis/verify_results.py
-python analysis/reproduce_tables.py
-python analysis/make_figures.py --results-dir results --out-dir figures
+The complete audited source package is available as:
+
+```text
+source/dldg_source_code.zip
 ```
 
-`verify_results.py` checks the eight audited JSONs, seeds, cohorts, metric finiteness, example alignment, and expected system set before any table/figure regeneration.
+It contains the full training/evaluation engine, Phase-2 launcher, CPU integrity checks, original statistical/figure scripts, protocol, and requirements. The experiment code retrieves MathDial from its public source; the dataset is not redistributed here.
 
-## 3. CPU integrity tests
+Key frozen settings:
 
-```bash
-export PROJECT_ROOT="$PWD"
-python code/dldg_phase1_cpu_checks.py
-python code/dldg_phase2_move_cpu_checks.py
-```
+- MathDial, same cohort for both auxiliary objectives
+- 11,374 train / 1,173 validation / 3,069 test examples
+- frozen Qwen2.5-1.5B-Instruct backbone
+- total LoRA rank budget 32; two-branch systems use 16 + 16
+- seeds 42, 123, 7
+- response-only perplexity for generation
+- Macro-F1 as the primary classification metric
+- paired bootstrap within each seed (`n=2000`)
+- three-seed mean +/- sample SD is descriptive only
 
-## 4. Smoke run
+See `REPRODUCIBILITY.md` and `protocols/DLDG_PHASE2_MOVE_PROTOCOL.md` for the experimental freeze and the Phase-2 task-dependence design.
 
-Run a smoke test before a full experiment:
+## Full paired-bootstrap audit files
 
-```bash
-export PROJECT_ROOT="$PWD"
-export PYTHONPATH="$PWD/code"
-export SMOKE=1
-export CLS_TASK=correctness
-export RESULTS_TAG=_dldg_edu_corr_p1_smoke
-python code/dldg_edu_run.py
-```
+The six full per-seed JSON outputs contain the aligned per-example arrays used for paired-bootstrap verification (stable example IDs, response NLL/token counts, gold labels/predictions, and routing summaries). Because these files are substantially larger than the manuscript-facing aggregates, they are retained by the authors rather than duplicated in the public repository.
 
-For pedagogical move:
+`results/SHA256SUMS_AUDITED_FULL.txt` records their exact SHA256 checksums. The full aligned files are available on reasonable request for independent verification.
 
-```bash
-export PROJECT_ROOT="$PWD"
-export PYTHONPATH="$PWD/code"
-export SMOKE=1
-python code/dldg_edu_phase2_move.py
-```
+## Data availability
 
-A valid environment should reach both `INTEGRITY PASS` and `INTEGRITY 2 PASS` before completing the nine-system smoke exercise.
+MathDial is publicly available from its original source. This repository does not redistribute the dialogue dataset. Public result files contain aggregate metrics only and no dialogue text.
 
-## 5. Full reproduction
+## Paper conclusions represented by this package
 
-Full correctness and move runs are computationally expensive. Keep the audited hyperparameters unchanged and run only after the smoke tests pass. See the module-level documentation in `code/dldg_edu_run.py`, `code/dldg_edu_phase2_move.py`, and `protocols/DLDG_PHASE2_MOVE_PROTOCOL.md`.
-
-## Results used by the paper
-
-The manuscript's source of truth is restricted to:
-
-- `aggregate_dldg_edu_corr_p1.json`
-- `results_seed{42,123,7}_dldg_edu_corr_p1.json`
-- `aggregate_dldg_edu_move_p2.json`
-- `results_seed{42,123,7}_dldg_edu_move_p2.json`
-
-The per-seed files are stored as `.json.gz` in GitHub and decompress byte-for-byte to the audited JSONs.
-
-## Data and code availability
-
-MathDial is publicly available from its original repository/Hugging Face dataset card. This repository contains preprocessing logic and does not redistribute the dataset. The saved result artifacts contain metrics, example identifiers, token-level loss aggregates, labels/predictions, and routing summaries; they do not contain the dialogue text.
+- Joint generation + classification causes reproducible generation interference across both tested auxiliary objectives.
+- Classification transfer is asymmetric and task-dependent rather than symmetrically negative.
+- Simple task-conditioned routing is the most consistent mitigation across the two tested objectives.
+- Additional context-dependent routing does not provide a consistent incremental benefit in this controlled setting.
 
 ## Citation
 
-If the manuscript is accepted, the final bibliographic citation will be added here.
+The final bibliographic citation will be added after publication.
