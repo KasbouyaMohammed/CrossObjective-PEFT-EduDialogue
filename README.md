@@ -21,7 +21,10 @@ results/
   aggregate_dldg_edu_corr_p1.json public three-seed correctness aggregate
   aggregate_dldg_edu_move_p2.json public three-seed move aggregate
   SHA256SUMS_AUDITED_FULL.txt      checksums for archived full per-seed audit JSONs
-source/dldg_source_code.zip       exact audited training/evaluation + analysis source package
+source/
+  archive_parts/                  lossless Base64 chunks of the audited source archive
+  rebuild_source_archive.py       reconstructs and SHA256-verifies the archive
+  SHA256_SOURCE_ARCHIVE.txt       expected archive checksum
 REPRODUCIBILITY.md                experimental freeze and integrity notes
 requirements.txt                  environment dependencies
 ```
@@ -47,13 +50,26 @@ This regenerates the two PPL-vs-Macro-F1 plots, the cross-task generation-interf
 
 ## Exact experiment source
 
-The complete audited source package is available as:
+The complete audited source package is stored losslessly in `source/archive_parts/` as GitHub-safe Base64 chunks. Reconstruct and verify it with:
 
-```text
-source/dldg_source_code.zip
+```bash
+python source/rebuild_source_archive.py
 ```
 
-It contains the full training/evaluation engine, Phase-2 launcher, CPU integrity checks, original statistical/figure scripts, protocol, and requirements. The experiment code retrieves MathDial from its public source; the dataset is not redistributed here.
+The reconstructed file is:
+
+```text
+source/dldg_source_code_full.tar.xz
+SHA256: bf3a4392ee4ccfe0839fff6c849791eadfdaace53fac7a09fe223b609b9715f6
+```
+
+Extract it with:
+
+```bash
+tar -xJf source/dldg_source_code_full.tar.xz -C source/reconstructed
+```
+
+The archive contains the full training/evaluation engine, Phase-2 launcher, CPU integrity checks, original statistical/figure scripts, protocol, requirements, source manifest, and source-file checksums. The experiment code retrieves MathDial from its public source; the dataset is not redistributed here.
 
 Key frozen settings:
 
