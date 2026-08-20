@@ -66,6 +66,7 @@ SHA256: bf3a4392ee4ccfe0839fff6c849791eadfdaace53fac7a09fe223b609b9715f6
 Extract it with:
 
 ```bash
+mkdir -p source/reconstructed
 tar -xJf source/dldg_source_code_full.tar.xz -C source/reconstructed
 ```
 
